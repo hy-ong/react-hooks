@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 
-function useAlert(): AlertHooks {
+export function useAlert(): AlertHooks {
   const [props, setProps] = useState<AlertProps>({} as AlertProps)
   const [show, setShow] = useState<boolean>(false)
   const refOnClose = useRef<DialogOnClose | undefined>(undefined)
@@ -33,5 +33,3 @@ export type AlertHooks = {
 }
 
 type DialogOnClose = () => void
-
-export default useAlert

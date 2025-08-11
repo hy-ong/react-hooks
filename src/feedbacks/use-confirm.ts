@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 
-function useConfirm(): ConfirmHooks {
+export function useConfirm(): ConfirmHooks {
   const [props, setProps] = useState<ConfirmProps>({} as ConfirmProps)
   const [show, setShow] = useState<boolean>(false)
   const refOnGrant = useRef<DialogOnGrant | undefined>(undefined)
@@ -45,5 +45,3 @@ export type ConfirmHooks = {
 
 type DialogOnGrant = () => void
 type DialogOnDeny = () => void
-
-export default useConfirm

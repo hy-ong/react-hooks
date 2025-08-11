@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 
-function useDialog<DialogProps = any, DialogResponse = any>(): DialogHooks<DialogProps, DialogResponse> {
+export function useDialog<DialogProps = any, DialogResponse = any>(): DialogHooks<DialogProps, DialogResponse> {
   const [props, setProps] = useState<DialogProps>(() => ({}) as DialogProps)
   const [show, setShow] = useState<boolean>(false)
   const refResponse = useRef<DialogResponse | undefined>(undefined)
@@ -43,5 +43,3 @@ export type DialogHooks<DialogProps = any, DialogResponse = any> = {
 
 export type DialogOnClose<DialogResponse> = (response: DialogResponse) => void
 export type DialogOnCancel = () => void
-
-export default useDialog

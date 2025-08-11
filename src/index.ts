@@ -1,3 +1,3 @@
-export * from "./use-alert.hook"
-export * from "./use-confirm.hook"
-export * from "./use-dialog.hook"
+export * from "./feedbacks/use-alert"
+export * from "./feedbacks/use-confirm"
+export * from "./feedbacks/use-dialog"
