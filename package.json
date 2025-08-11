@@ -1,6 +1,6 @@
 {
   "name": "@hy_ong/react-hooks",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "React Hooks",
   "keywords": [
     "hy_ong",
@@ -32,6 +32,11 @@
       "default": "./dist/index.js"
     }
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "test": "vitest"
