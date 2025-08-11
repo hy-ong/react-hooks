@@ -1,4 +1,4 @@
-import * as eslintJs from "@eslint/js"
+import eslintJs from "@eslint/js"
 import eslintTs from "typescript-eslint"
 
 export default eslintTs.config(eslintJs.configs.recommended, eslintTs.configs.recommended, {
