@@ -1,12 +1,12 @@
 import { useCallback, useRef, useState } from "react"
 
 function useConfirm(): ConfirmHooks {
-  const [props, setProps] = useState<AlertProps>({} as AlertProps)
+  const [props, setProps] = useState<ConfirmProps>({} as ConfirmProps)
   const [show, setShow] = useState<boolean>(false)
   const refOnGrant = useRef<DialogOnGrant | undefined>(undefined)
   const refOnDeny = useRef<DialogOnDeny | undefined>(undefined)
 
-  const open = useCallback((props: AlertProps): void => {
+  const open = useCallback((props: ConfirmProps): void => {
     setShow(true)
     setProps(props)
     refOnGrant.current = props.onGrant
@@ -26,7 +26,7 @@ function useConfirm(): ConfirmHooks {
   return { show, props, open, grant, deny }
 }
 
-export type AlertProps = {
+export type ConfirmProps = {
   title: string
   description: string
   grantText?: string
@@ -37,8 +37,8 @@ export type AlertProps = {
 
 export type ConfirmHooks = {
   show: boolean
-  props: AlertProps
-  open: (props: AlertProps) => void
+  props: ConfirmProps
+  open: (props: ConfirmProps) => void
   grant: () => void
   deny: () => void
 }
