@@ -1,0 +1,53 @@
+{
+  "name": "@hy_ong/react-hooks",
+  "version": "0.0.1",
+  "description": "React Hooks",
+  "keywords": [
+    "hy_ong",
+    "react",
+    "hooks",
+    "react-hooks"
+  ],
+  "homepage": "https://github.com/hy-ong/react-hooks#readme",
+  "bugs": {
+    "url": "https://github.com/hy-ong/react-hooks/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hy-ong/react-hooks.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "author": "Ong Hoe Yuan",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "react": "^19.1.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@types/node": "^22.17.0",
+    "@types/react": "^19.1.9",
+    "eslint": "^9.32.0",
+    "prettier": "^3.6.2",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.39.0",
+    "vitest": "^3.2.4"
+  }
+}
