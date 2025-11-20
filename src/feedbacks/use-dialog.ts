@@ -7,9 +7,9 @@ export function useDialog<DialogProps = any, DialogResponse = any>(): DialogHook
   const refOnClose = useRef<DialogOnClose<DialogResponse> | undefined>(undefined)
   const refOnCancel = useRef<DialogOnCancel | undefined>(undefined)
 
-  const open = useCallback((props: DialogProps, callbackClose?: DialogOnClose<DialogResponse>, callbackCancel?: DialogOnCancel): void => {
+  const open = useCallback((props?: DialogProps, callbackClose?: DialogOnClose<DialogResponse>, callbackCancel?: DialogOnCancel): void => {
     setShow(true)
-    setProps(props)
+    if (props) setProps(props)
     refOnClose.current = callbackClose
     refOnCancel.current = callbackCancel
   }, [])
@@ -36,7 +36,7 @@ export type DialogHooks<DialogProps = any, DialogResponse = any> = {
   show: boolean
   props: DialogProps
   response: DialogResponse | undefined
-  open: (props: DialogProps, callbackClose?: DialogOnClose<DialogResponse>, callbackCancel?: DialogOnCancel) => void
+  open: (props?: DialogProps, callbackClose?: DialogOnClose<DialogResponse>, callbackCancel?: DialogOnCancel) => void
   close: (response?: DialogResponse) => void
   cancel: () => void
 }
