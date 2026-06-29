@@ -1,34 +1,45 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback } from "react"
+
+import { FeedbackSeverity } from "./use-alert"
+import { useDialog } from "./use-dialog"
 
 export function useConfirm(): ConfirmHooks {
-  const [props, setProps] = useState<ConfirmProps>({} as ConfirmProps)
-  const [show, setShow] = useState<boolean>(false)
-  const refOnGrant = useRef<DialogOnGrant | undefined>(undefined)
-  const refOnDeny = useRef<DialogOnDeny | undefined>(undefined)
+  const { show, props, open: openDialog, close } = useDialog<ConfirmProps, boolean>()
 
-  const open = useCallback((props: ConfirmProps): void => {
-    setShow(true)
-    setProps(props)
-    refOnGrant.current = props.onGrant
-    refOnDeny.current = props.onDeny
-  }, [])
+  const open = useCallback((props: ConfirmProps): Promise<boolean> => {
+    return openDialog(props, {
+      onClose: (granted) => {
+        if (granted) {
+          props.onGrant?.()
+        } else {
+          props.onDeny?.()
+        }
+      },
+      onCancel: () => {
+        props.onDeny?.()
+      },
+    }).then((result) => result.status === "closed" ? result.value : false)
+  }, [openDialog])
 
   const grant = useCallback((): void => {
-    setShow(false)
-    refOnGrant.current?.()
-  }, [])
+    close(true)
+  }, [close])
 
   const deny = useCallback((): void => {
-    setShow(false)
-    refOnDeny.current?.()
-  }, [])
+    close(false)
+  }, [close])
 
-  return { show, props, open, grant, deny }
+  if (show) {
+    return { show: true, props, open, grant, deny }
+  }
+
+  return { show: false, props: undefined, open, grant, deny }
 }
 
 export type ConfirmProps = {
   title: string
   description: string
+  severity?: FeedbackSeverity
   grantText?: string
   denyText?: string
   onGrant?: () => void
@@ -36,12 +47,16 @@ export type ConfirmProps = {
 }
 
 export type ConfirmHooks = {
-  show: boolean
-  props: ConfirmProps
-  open: (props: ConfirmProps) => void
+  open: (props: ConfirmProps) => Promise<boolean>
   grant: () => void
   deny: () => void
-}
-
-type DialogOnGrant = () => void
-type DialogOnDeny = () => void
+} & (
+  | {
+      show: true
+      props: ConfirmProps
+    }
+  | {
+      show: false
+      props: undefined
+    }
+)

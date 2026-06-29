@@ -1,35 +1,44 @@
-import { useCallback, useRef, useState } from "react"
+import { useCallback } from "react"
+
+import { useDialog } from "./use-dialog"
 
 export function useAlert(): AlertHooks {
-  const [props, setProps] = useState<AlertProps>({} as AlertProps)
-  const [show, setShow] = useState<boolean>(false)
-  const refOnClose = useRef<DialogOnClose | undefined>(undefined)
+  const { show, props, open: openDialog, close: closeDialog } = useDialog<AlertProps, undefined>()
 
-  const open = useCallback((props: AlertProps): void => {
-    setShow(true)
-    setProps(props)
-    refOnClose.current = props.onClose
-  }, [])
+  const open = useCallback((props: AlertProps): Promise<void> => {
+    return openDialog(props, props.onClose).then(() => undefined)
+  }, [openDialog])
 
   const close = useCallback((): void => {
-    setShow(false)
-    refOnClose.current?.()
-  }, [])
+    closeDialog()
+  }, [closeDialog])
 
-  return { show, props, open, close }
+  if (show) {
+    return { show: true, props, open, close }
+  }
+
+  return { show: false, props: undefined, open, close }
 }
 
 export type AlertProps = {
   title: string
   description: string
+  severity?: FeedbackSeverity
   onClose?: () => void
 }
 
-export type AlertHooks = {
-  show: boolean
-  props: AlertProps
-  open: (props: AlertProps) => void
-  close: () => void
-}
+export type FeedbackSeverity = "info" | "success" | "warning" | "error" | "danger"
 
-type DialogOnClose = () => void
+export type AlertHooks = {
+  open: (props: AlertProps) => Promise<void>
+  close: () => void
+} & (
+  | {
+      show: true
+      props: AlertProps
+    }
+  | {
+      show: false
+      props: undefined
+    }
+)

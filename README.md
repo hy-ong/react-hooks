@@ -1,6 +1,8 @@
 # @hy_ong/react-hooks
 
-A collection of reusable React hooks for dialog management in modern React applications.
+Headless feedback lifecycle hooks for React applications.
+
+This package focuses on user feedback flows: dialogs, alerts, confirmations, prompts, toasts, and confirmed actions. It does not provide UI components. You bring your own dialog, modal, toast, or form components and wire them to these controllers.
 
 ## Installation
 
@@ -8,211 +10,331 @@ A collection of reusable React hooks for dialog management in modern React appli
 npm install @hy_ong/react-hooks
 ```
 
-## Hooks
+## Design
 
-### useDialog
+- Hooks are headless and UI-agnostic.
+- Feedback actions are lifecycle-aware and single-shot.
+- Dialog-style hooks support awaitable flows.
+- Closed hooks do not expose stale props.
+- Toasts are non-blocking and queue-friendly.
 
-A generic hook for managing modal dialogs with custom props and response handling.
+## useDialog
+
+Generic primitive for a single active dialog session.
 
 ```typescript
-import { useDialog } from '@hy_ong/react-hooks';
+import { useDialog } from "@hy_ong/react-hooks";
 
-// Basic usage
 const dialog = useDialog<{ title: string }, string>();
+const guardedDialog = useDialog({ replace: "ignore" });
 
-// Open a dialog
-dialog.open(
-  { title: "Enter your name" },
-  (response) => console.log("Response:", response),
-  () => console.log("Cancelled")
-);
+async function askName() {
+  const result = await dialog.open({ title: "Enter your name" });
 
-// Close with response
-dialog.close("John Doe");
+  if (result.status === "closed") {
+    console.log(result.value);
+  }
+}
 
-// Cancel without response
+dialog.close("Grace");
 dialog.cancel();
 ```
 
 **API:**
-- `show: boolean` - Whether the dialog is visible
-- `props: DialogProps` - Current dialog props
-- `response: DialogResponse | undefined` - Last response from dialog
-- `open(props, onClose?, onCancel?)` - Open the dialog
-- `close(response?)` - Close dialog with optional response
-- `cancel()` - Cancel dialog without response
 
-### useAlert
+- `show: boolean` - Whether the dialog is visible.
+- `props: DialogProps | undefined` - Current dialog props while visible.
+- `response: DialogResponse | undefined` - Last close response.
+- `result: DialogResult | undefined` - Last settled session result.
+- `open(props, options?)` - Opens a new session and returns a promise.
+- `close(response?)` - Settles the active session as closed.
+- `cancel(reason?)` - Settles the active session as cancelled.
+- `reset()` - Clears visible state and the last result.
 
-A specialized hook for simple alert dialogs with title and description.
+Opening a new session cancels the previous active session with `reason: "replaced"`. Pass `useDialog({ replace: "ignore" })` to keep the active session and resolve the new open attempt with `reason: "ignored"`. Unmounting cancels the active session with `reason: "unmounted"`.
+
+## useAlert
+
+Acknowledgement flow for simple alert dialogs.
 
 ```typescript
-import { useAlert } from '@hy_ong/react-hooks';
+import { useAlert } from "@hy_ong/react-hooks";
 
 const alert = useAlert();
 
-// Open an alert
-alert.open({
-  title: "Success",
-  description: "Operation completed successfully",
-  onClose: () => console.log("Alert closed")
-});
+async function save() {
+  await alert.open({
+    title: "Saved",
+    description: "Changes were saved.",
+    severity: "success",
+  });
+}
 
-// Close the alert
 alert.close();
 ```
 
 **API:**
-- `show: boolean` - Whether the alert is visible
-- `props: AlertProps` - Current alert props
-- `open(props)` - Open the alert
-- `close()` - Close the alert
 
-**AlertProps:**
-- `title: string` - Alert title
-- `description: string` - Alert description
-- `onClose?: () => void` - Optional close callback
+- `show: boolean`
+- `props: AlertProps | undefined`
+- `open(props): Promise<void>`
+- `close()`
+- `AlertProps.severity?: "info" | "success" | "warning" | "error" | "danger"`
 
-### useConfirm
+## useConfirm
 
-A specialized hook for confirmation dialogs with grant/deny actions.
+Boolean decision flow for confirmation dialogs.
 
 ```typescript
-import { useConfirm } from '@hy_ong/react-hooks';
+import { useConfirm } from "@hy_ong/react-hooks";
 
 const confirm = useConfirm();
 
-// Open a confirmation dialog
-confirm.open({
-  title: "Delete Item",
-  description: "Are you sure you want to delete this item?",
-  grantText: "Delete",
-  denyText: "Cancel",
-  onGrant: () => console.log("Confirmed"),
-  onDeny: () => console.log("Denied")
-});
+async function removeItem() {
+  const granted = await confirm.open({
+    title: "Delete item",
+    description: "This cannot be undone.",
+    severity: "danger",
+    grantText: "Delete",
+    denyText: "Cancel",
+  });
 
-// Grant the confirmation
+  if (granted) {
+    // delete item
+  }
+}
+
 confirm.grant();
-
-// Deny the confirmation
 confirm.deny();
 ```
 
 **API:**
-- `show: boolean` - Whether the confirmation is visible
-- `props: AlertProps` - Current confirmation props
-- `open(props)` - Open the confirmation
-- `grant()` - Grant/confirm the action
-- `deny()` - Deny/cancel the action
 
-**AlertProps:**
-- `title: string` - Confirmation title
-- `description: string` - Confirmation description
-- `grantText?: string` - Text for grant/confirm button
-- `denyText?: string` - Text for deny/cancel button
-- `onGrant?: () => void` - Optional grant callback
-- `onDeny?: () => void` - Optional deny callback
+- `show: boolean`
+- `props: ConfirmProps | undefined`
+- `open(props): Promise<boolean>`
+- `grant()`
+- `deny()`
+- `ConfirmProps.severity?: "info" | "success" | "warning" | "error" | "danger"`
 
-## Example Implementation
+## usePrompt
 
-Here's how you might implement a dialog component using these hooks:
+Input flow for prompt-style dialogs.
 
 ```typescript
-import React from 'react';
-import { useAlert, useConfirm, useDialog } from '@hy_ong/react-hooks';
+import { usePrompt } from "@hy_ong/react-hooks";
 
-function MyComponent() {
-  const alert = useAlert();
-  const confirm = useConfirm();
-  const dialog = useDialog<{ message: string }, boolean>();
+const prompt = usePrompt<string>();
 
-  return (
-    <div>
-      <button onClick={() => alert.open({
-        title: "Info",
-        description: "This is an information message"
-      })}>
-        Show Alert
-      </button>
+async function renameItem() {
+  const result = await prompt.open({
+    title: "Rename item",
+    defaultValue: "Untitled",
+    transform: (value) => value.trim(),
+    validate: async (value) => value ? undefined : "Name is required",
+  });
 
-      <button onClick={() => confirm.open({
-        title: "Confirm Action",
-        description: "Do you want to proceed?",
-        onGrant: () => console.log("User confirmed"),
-        onDeny: () => console.log("User denied")
-      })}>
-        Show Confirmation
-      </button>
-
-      <button onClick={() => dialog.open(
-        { message: "Custom dialog content" },
-        (response) => console.log("Dialog response:", response)
-      )}>
-        Show Custom Dialog
-      </button>
-
-      {/* Render your dialog components based on the hook states */}
-      {alert.show && (
-        <AlertDialog
-          title={alert.props.title}
-          description={alert.props.description}
-          onClose={alert.close}
-        />
-      )}
-
-      {confirm.show && (
-        <ConfirmDialog
-          title={confirm.props.title}
-          description={confirm.props.description}
-          grantText={confirm.props.grantText}
-          denyText={confirm.props.denyText}
-          onGrant={confirm.grant}
-          onDeny={confirm.deny}
-        />
-      )}
-
-      {dialog.show && (
-        <CustomDialog
-          message={dialog.props.message}
-          onClose={dialog.close}
-          onCancel={dialog.cancel}
-        />
-      )}
-    </div>
-  );
+  if (result.status === "submitted") {
+    console.log(result.value);
+  }
 }
+
+prompt.setValue("New name");
+await prompt.submit();
+prompt.cancel();
 ```
 
-## Features
+**API:**
 
-- **TypeScript Support**: Full TypeScript support with generic types
-- **Lightweight**: Minimal dependencies (only React)
-- **Flexible**: Generic `useDialog` for custom implementations
-- **Specialized**: Pre-built hooks for common use cases
-- **Modern**: Built with React hooks and functional components
+- `show: boolean`
+- `props: PromptProps | undefined`
+- `value: Value | undefined`
+- `error: string | undefined`
+- `validating: boolean`
+- `open(props): Promise<PromptResult<Value>>`
+- `setValue(value)`
+- `submit(value?): Promise<boolean>`
+- `cancel()`
+
+Async validation results are ignored when the prompt is cancelled or replaced before validation finishes.
+
+## useToast
+
+Non-blocking toast state with optional auto-dismiss.
+
+```typescript
+import { useToast } from "@hy_ong/react-hooks";
+
+const toast = useToast({ defaultDuration: 3000 });
+
+const id = toast.show({
+  title: "Saved",
+  variant: "success",
+});
+
+toast.update(id, { description: "Saved again." });
+toast.success({ title: "Done" });
+toast.error({ title: "Failed" });
+toast.dismiss(id);
+toast.clear();
+```
+
+**API:**
+
+- `items: ToastItem[]`
+- `show(input): string`
+- `update(id, patch)`
+- `success(input): string`
+- `error(input): string`
+- `warning(input): string`
+- `info(input): string`
+- `dismiss(id)`
+- `clear()`
+
+## useUndoToast
+
+Recoverable toast flow for actions that can be undone before a timeout.
+
+```typescript
+import { useToast, useUndoToast } from "@hy_ong/react-hooks";
+
+const toast = useToast();
+const undoToast = useUndoToast(toast);
+
+const archived = undoToast.show({
+  title: "Item archived",
+  duration: 5000,
+  undo: () => restoreItem(),
+  finalize: () => commitArchive(),
+});
+
+const result = await archived.done;
+undoToast.cancel(archived.id);
+```
+
+**API:**
+
+- `pending: number`
+- `show(input): UndoToastHandle`
+- `cancel(id)`
+- `clear()`
+- `UndoToastHandle.id: string`
+- `UndoToastHandle.done: Promise<UndoToastResult>`
+- `UndoToastHandle.undo()`
+
+`UndoToastResult` resolves to `undone`, `finalized`, `dismissed`, or `failed`. Failed results include `phase: "undo" | "finalize"` and the original `error`.
+
+## useFeedbackQueue
+
+Runs feedback tasks sequentially.
+
+```typescript
+import { useFeedbackQueue } from "@hy_ong/react-hooks";
+
+const queue = useFeedbackQueue();
+
+await queue.enqueue(() => confirm.open({
+  title: "Delete item",
+  description: "This cannot be undone.",
+}));
+```
+
+**API:**
+
+- `running: boolean`
+- `pending: number`
+- `enqueue(task): Promise<Result>`
+- `clear(reason?)`
+
+## useAsyncFeedback
+
+Wraps an async action with optional confirmation plus success/error feedback.
+
+```typescript
+import { useAsyncFeedback, useConfirm, useToast } from "@hy_ong/react-hooks";
+
+const confirm = useConfirm();
+const toast = useToast();
+const save = useAsyncFeedback(saveItem, {
+  confirm,
+  toast,
+  confirmProps: {
+    title: "Save item",
+    description: "Save these changes?",
+  },
+  loading: { title: "Saving..." },
+  success: () => ({ title: "Saved" }),
+  error: (error) => ({
+    title: "Save failed",
+    description: error instanceof Error ? error.message : "Unknown error",
+  }),
+  throwOnError: false,
+});
+
+const result = await save.run(item);
+```
+
+**API:**
+
+- `pending: boolean` - True while one or more action runs are in flight.
+- `result: AsyncFeedbackResult | undefined`
+- `error: unknown`
+- `run(...args): Promise<AsyncFeedbackResult>`
+- `reset()`
+
+## useConfirmAction
+
+Wraps an action with a confirmation step.
+
+```typescript
+import { useConfirm, useConfirmAction } from "@hy_ong/react-hooks";
+
+const confirm = useConfirm();
+const remove = useConfirmAction(
+  (id: string) => deleteItem(id),
+  confirm,
+  (id) => ({
+    title: "Delete item",
+    description: `Delete ${id}?`,
+  }),
+);
+
+await remove.run("item-1");
+```
+
+**API:**
+
+- `pending: boolean`
+- `run(...args): Promise<ConfirmActionResult>`
+
+## Rendering
+
+Render your own UI from the hook state.
+
+```tsx
+{confirm.show && (
+  <ConfirmDialog
+    title={confirm.props.title}
+    description={confirm.props.description}
+    grantText={confirm.props.grantText}
+    denyText={confirm.props.denyText}
+    onGrant={confirm.grant}
+    onDeny={confirm.deny}
+  />
+)}
+```
+
+The `show` flag narrows `props` to the active props type.
 
 ## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Run tests
-npm test
-
-# Build
+npm run check
 npm run build
+npm run release:dry-run
 ```
 
 ## License
 
 MIT © [Ong Hoe Yuan](https://github.com/hy-ong)
-
-## Repository
-
-[GitHub Repository](https://github.com/hy-ong/react-hooks)
-
-## Issues
-
-Found a bug or have a feature request? [Create an issue](https://github.com/hy-ong/react-hooks/issues)
